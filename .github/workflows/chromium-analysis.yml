@@ -111,7 +111,7 @@ jobs:
         # FOSSA dependencies file for Chromium source package
         # Generated automatically by GitHub Actions
         
-        vendor-dependencies:
+        vendored-dependencies:
           - name: chromium
             version: "VERSION_PLACEHOLDER"
             path: "chromium-extracted/"
