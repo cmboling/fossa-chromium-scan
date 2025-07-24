@@ -9,96 +9,88 @@ jobs:
   analyze-chromium:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm2cpio cpio curl p7zip-full
 
-    - name: Install tools
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y rpm2cpio cpio curl p7zip-full
+      - name: Get latest Chromium RPM info
+        id: chromium-info
+        run: |
+          set -euo pipefail
+          CHROMIUM_RPM=$(curl -s https://dl.fedoraproject.org/pub/epel/8/Everything/source/tree/Packages/c/ \
+            | grep -o 'chromium-[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+-[0-9]\+\.el8\.src\.rpm' \
+            | sort -V | tail -1)
+          VERSION=$(echo "$CHROMIUM_RPM" | sed 's/chromium-\([0-9\.]\+\)-.*\.src\.rpm/\1/')
+          echo "rpm_name=$CHROMIUM_RPM" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-    - name: Get latest Chromium RPM info
-      id: chromium-info
-      run: |
-        set -euo pipefail
+      - name: Download Chromium RPM
+        run: |
+          curl -LO "https://dl.fedoraproject.org/pub/epel/8/Everything/source/tree/Packages/c/${{ steps.chromium-info.outputs.rpm_name }}"
 
-        CHROMIUM_RPM=$(curl -s https://dl.fedoraproject.org/pub/epel/8/Everything/source/tree/Packages/c/ \
-          | grep -o 'chromium-[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+-[0-9]\+\.el8\.src\.rpm' \
-          | sort -V | tail -1)
-        
-        VERSION=$(echo "$CHROMIUM_RPM" | sed 's/chromium-\([0-9\.]\+\)-.*\.src\.rpm/\1/')
+      - name: Extract Chromium RPM
+        uses: cmboling/.github/.github/actions/extract-rpm@main
+        with:
+          rpm_name: ${{ steps.chromium-info.outputs.rpm_name }}
+          dependency_name: chromium
+          version: ${{ steps.chromium-info.outputs.version }}
+          output_path: chromium-extracted
 
-        echo "rpm_name=$CHROMIUM_RPM" >> $GITHUB_OUTPUT
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Setup and Run FOSSA for Chromium
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+        run: |
+          curl -sSL https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh | bash
+          fossa analyze \
+            --title "Chromium-${{ steps.chromium-info.outputs.version }}-Analysis" \
+            --experimental-block-first-party-scans \
+            --exclude-path . \
+            --debug
 
-    - name: Download Chromium RPM
-      run: |
-        RPM_NAME="${{ steps.chromium-info.outputs.rpm_name }}"
-        curl -LO "https://dl.fedoraproject.org/pub/epel/8/Everything/source/tree/Packages/c/$RPM_NAME"
-
-    - name: Extract Chromium RPM
-      uses: ./github/actions/extract-rpm
-      with:
-        rpm_name: ${{ steps.chromium-info.outputs.rpm_name }}
-        dependency_name: chromium
-        version: ${{ steps.chromium-info.outputs.version }}
-        output_path: chromium-extracted
-
-    - name: Setup and Run FOSSA
-      env:
-        FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-      run: |
-        curl -sSL https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh | bash
-        fossa analyze \
-          --title "Chromium-${{ steps.chromium-info.outputs.version }}-Analysis" \
-          --experimental-block-first-party-scans \
-          --exclude-path . \
-          --debug
-
-    - name: Upload Chromium Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: chromium-artifacts
-        path: |
-          fossa-deps.yml
-          ${{ steps.chromium-info.outputs.rpm_name }}
+      - name: Upload Chromium Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromium-artifacts
+          path: |
+            fossa-deps.yml
+            ${{ steps.chromium-info.outputs.rpm_name }}
 
   analyze-boost:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm2cpio cpio curl p7zip-full
 
-    - name: Install tools
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y rpm2cpio cpio curl p7zip-full
+      - name: Download Boost RPM
+        run: |
+          curl -LO "https://github.com/cmboling/fossa-chromium-scan/releases/download/test-boost/boost-1.75.0-8.el9.src.rpm"
 
-    - name: Download Boost RPM
-      run: |
-        curl -LO "https://github.com/cmboling/fossa-chromium-scan/releases/download/test-boost/boost-1.75.0-8.el9.src.rpm"
+      - name: Extract Boost RPM
+        uses: cmboling/.github/.github/actions/extract-rpm@main
+        with:
+          rpm_name: boost-1.75.0-8.el9.src.rpm
+          dependency_name: boost
+          version: 1.75.0
+          output_path: boost-extracted
 
-    - name: Extract Boost RPM
-      uses: ./github/actions/extract-rpm
-      with:
-        rpm_name: boost-1.75.0-8.el9.src.rpm
-        dependency_name: boost
-        version: 1.75.0
-        output_path: boost-extracted
+      - name: Setup and Run FOSSA for Boost
+        env:
+          FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+        run: |
+          curl -sSL https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh | bash
+          fossa analyze \
+            --title "Boost-1.75.0-Analysis" \
+            --experimental-block-first-party-scans \
+            --exclude-path . \
+            --debug
 
-    - name: Setup and Run FOSSA
-      env:
-        FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-      run: |
-        curl -sSL https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh | bash
-        fossa analyze \
-          --title "Boost-1.75.0-Analysis" \
-          --experimental-block-first-party-scans \
-          --exclude-path . \
-          --debug
-
-    - name: Upload Boost Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: boost-artifacts
-        path: |
-          fossa-deps.yml
-          boost-1.75.0-8.el9.src.rpm
+      - name: Upload Boost Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: boost-artifacts
+          path: |
+            fossa-deps.yml
+            boost-1.75.0-8.el9.src.rpm
