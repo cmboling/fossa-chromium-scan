@@ -29,8 +29,14 @@ jobs:
         run: |
           curl -LO "https://dl.fedoraproject.org/pub/epel/8/Everything/source/tree/Packages/c/${{ steps.chromium-info.outputs.rpm_name }}"
 
+      - name: Checkout shared .github repo
+        uses: actions/checkout@v4
+        with:
+          repository: cmboling/.github
+          path: external-actions
+
       - name: Extract Chromium RPM
-        uses: cmboling/.github/.github/actions/extract-rpm@main
+        uses: ./external-actions/.github/actions/extract-rpm
         with:
           rpm_name: ${{ steps.chromium-info.outputs.rpm_name }}
           dependency_name: chromium
@@ -54,6 +60,7 @@ jobs:
           name: chromium-artifacts
           path: |
             fossa-deps.yml
+            fossa-attribution-report.json
             ${{ steps.chromium-info.outputs.rpm_name }}
 
   analyze-boost:
@@ -66,10 +73,18 @@ jobs:
 
       - name: Download Boost RPM
         run: |
-          curl -LO "https://github.com/cmboling/fossa-chromium-scan/releases/download/test-boost/boost-1.75.0-8.el9.src.rpm"
+          BOOST_RPM="boost-1.75.0-8.el9.src.rpm"
+          BOOST_URL="https://github.com/cmboling/fossa-chromium-scan/releases/download/test-boost/$BOOST_RPM"
+          curl -L -o "$BOOST_RPM" "$BOOST_URL"
+
+      - name: Checkout shared .github repo
+        uses: actions/checkout@v4
+        with:
+          repository: cmboling/.github
+          path: external-actions
 
       - name: Extract Boost RPM
-        uses: cmboling/.github/.github/actions/extract-rpm@main
+        uses: ./external-actions/.github/actions/extract-rpm
         with:
           rpm_name: boost-1.75.0-8.el9.src.rpm
           dependency_name: boost
@@ -93,4 +108,5 @@ jobs:
           name: boost-artifacts
           path: |
             fossa-deps.yml
+            fossa-attribution-report.json
             boost-1.75.0-8.el9.src.rpm
