@@ -35,6 +35,10 @@ jobs:
           repository: cmboling/.github
           path: external-actions
 
+      - name: ls
+        run: |
+          ls -l
+
       - name: Extract Chromium RPM
         uses: ./external-actions/.github/actions/extract-rpm
         with:
