@@ -39,6 +39,8 @@ jobs:
         run: |
           ls -l
           pwd
+          cd external-actions
+          ls -l
 
       - name: Extract Chromium RPM
         uses: ./external-actions/.github/actions/extract-rpm
