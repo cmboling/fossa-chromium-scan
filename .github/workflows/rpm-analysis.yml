@@ -84,7 +84,7 @@ jobs:
           path: external-actions
 
       - name: Extract Boost RPM
-        uses: ./external-actions/.github/actions/extract-rpm
+        uses: ./external-actions/actions/extract-rpm
         with:
           rpm_name: boost-1.75.0-8.el9.src.rpm
           dependency_name: boost
